@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-    <script src="http://mbostock.github.io/d3/talk/20111018/d3/d3.js"></script>
-    <script type="text/javascript" src="http://mbostock.github.io/d3/talk/20111018/d3/d3.geom.js"></script>
-    <script type="text/javascript" src="http://mbostock.github.io/d3/talk/20111018/d3/d3.layout.js"></script>
+    <script src="https://mbostock.github.io/d3/talk/20111018/d3/d3.js"></script>
+    <script type="text/javascript" src="https://mbostock.github.io/d3/talk/20111018/d3/d3.geom.js"></script>
+    <script type="text/javascript" src="https://mbostock.github.io/d3/talk/20111018/d3/d3.layout.js"></script>
     
     <style type="text/css">
 body {
@@ -12,8 +12,9 @@ body {
   /*background-repeat: no-repeat;*/
   background-color:#000;
   margin: 0;
-  font-size: 14px;
+  font-size: 11px;
   font-family: "Helvetica Neue", Helvetica;
+  color:#FFF;
 }
 
 #chart, #header, #footer {
@@ -103,6 +104,24 @@ a:hover {
 svg {
   
 }
+#body {
+  float: left;
+  width: 800px
+}
+.panels{
+  float: left;
+  width: 200px;
+  padding:20px;
+}
+
+.panel {
+  display: table-cell;
+  vertical-align: middle;
+  height: 40px;
+  width: 200px;
+  float:left;
+}
+
 
 circle {
   fill: #333;
@@ -114,60 +133,109 @@ circle {
 
 <body>
 <div id="body"></div>
+<div class="panels">
+  <div class="panel">
+    <span> circles </span>
+    <input id="circles"  type="range" value="42" min="2" max="200" step="1" onchange="update(this)">
+  </div>
+  <div class="panel">
+    <span> Radius </span>
+    <input id="radius"  type="range" value="23" min="10" max="100" step="1" onchange="update(this)">
+  </div>
+  <div class="panel">
+    <span> Colors </span>
+    <input id="colors" type="range" value="3" min="1" max="7" step="1" onchange="update(this)">
+  </div>
+   <div class="panel">
+    <span> Stroke </span>
+    <input id="stroke" type="range" value="1" min="1" max="10" step="0.5" onchange="update(this)">
+  </div>
+  <div class="panel">
+    <span> Padding </span>
+    <input id="padding"  type="range" value="2" min="0" max="20" step="1" onchange="update(this)">
+  </div>
+  <div class="panel">
+    <span> Gravity </span>
+    <input id="gravity"  type="range" value="0.02" min="0" max="0.1" step="0.01" onchange="update(this)">
+  </div>
+  <div class="panel">
+    <span> DarkMatter </span>
+    <input id="darkMatter" type="range" value="331" min="1" max="2000" step="10" onchange="update(this)">
+  </div>
+ 
+</div>
+
+
 <script type="text/javascript">
 
 var w = 800,
     h = 600;
 
-var nCircles = 100
-var maxRadius = 23
-var minRadius = 7
-var gravity = 0.02
-var padding = 2
-var nColors = 5
-var darkMatter = 331
-var stroke = 1
+var options = {
+  circles : 42,
+  radius : 23,
+  gravity : 0.02,
+  padding : 2,
+  colors: 3,
+  darkMatter:331,
+  stroke:1
+}
+var root;
+var force;
 
-var nodes = d3.range(nCircles).map(function() { return {radius: Math.random() * maxRadius + minRadius}; }),
-    color = d3.scale.category10();
+function update(slider){
+  console.log("value",options[slider.id],slider.value)
+  options[slider.id]= slider.value
 
-var force = d3.layout.force()
-    .gravity(gravity)
-    .charge(function(d, i) { return i ? 0 : -darkMatter; })
-    .nodes(nodes)
-    .size([w, h]);
-
-var root = nodes[0];
-root.radius = 0;
-root.fixed = true;
-
-force.start();
-
-var svg = d3.select("#body").append("svg:svg")
-    .attr("width", w)
-    .attr("height", h);
-
-svg.selectAll("circle")
-    .data(nodes.slice(1))
-    .enter().append("svg:circle")
-    .attr("r", function(d) { return d.radius - padding; })
-    .style("stroke", function(d, i) { return color(i % nColors); })
-    .style("stroke-width", function(d, i) { return stroke });
+  svg.selectAll("*").remove();
+  dag(options)
+}
 
 
-force.on("tick", function(e) {
-  var q = d3.geom.quadtree(nodes),
-      i = 0,
-      n = nodes.length;
+function dag(o){
+  var nodes = d3.range(o.circles).map(function() { return {radius: Math.floor(Math.random() * o.radius)+ Math.floor(o.radius/3) };}),
+      color = d3.scale.category10();
 
-  while (++i < n) {
-    q.visit(collide(nodes[i]));
-  }
+  force = d3.layout.force()
+      .gravity(o.gravity)
+      .charge(function(d, i) { return i ? 0 : -o.darkMatter; })
+      .nodes(nodes)
+      .size([w, h]);
+
+  root = nodes[0];
+  root.radius = 0;
+  root.fixed = true;
+
+  force.start();
+
+  
 
   svg.selectAll("circle")
-      .attr("cx", (d)=>{return d.x})
-      .attr("cy", (d)=>{return d.y;});
-});
+      .data(nodes.slice(1))
+      .enter().append("svg:circle")
+      .attr("r", function(d) { return d.radius - o.padding; })
+      .style("stroke", function(d, i) { return color(i % o.colors); })
+      .style("stroke-width", function(d, i) { return o.stroke });
+
+
+  force.on("tick", function(e) {
+    var q = d3.geom.quadtree(nodes),
+        i = 0,
+        n = nodes.length;
+
+    while (++i < n) {
+      q.visit(collide(nodes[i]));
+    }
+
+    svg.selectAll("circle")
+        .attr("cx", (d)=>{return d.x})
+        .attr("cy", (d)=>{return d.y;});
+  });
+}
+
+var svg = d3.select("#body").append("svg:svg")
+      .attr("width", w)
+      .attr("height", h);
 
 svg.on("mousemove", function() {
   var p1 = d3.svg.mouse(this);
@@ -202,6 +270,9 @@ function collide(node) {
         || y2 < ny1;
   };
 }
+
+dag(options)
+
 
     </script>
   </body>
