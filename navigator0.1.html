@@ -84,15 +84,6 @@ line {
   color: #1181B8;
 }
 
-a:link, a:visited {
-  color: #000;
-  text-decoration: none;
-}
-
-a:hover {
-  color: #666;
-}
-
 .hint {
   position: absolute;
   right: 0;
@@ -118,10 +109,13 @@ svg {
   display: table-cell;
   vertical-align: middle;
   height: 40px;
-  width: 200px;
+  width: 320px;
   float:left;
 }
 
+.panel a {
+
+}
 
 circle {
   fill: #333;
@@ -148,7 +142,7 @@ circle {
   </div>
    <div class="panel">
     <span> Stroke </span>
-    <input id="stroke" type="range" value="1" min="1" max="10" step="0.5" onchange="update(this)">
+    <input id="stroke" type="range" value="1" min="1" max="10" step="1" onchange="update(this)">
   </div>
   <div class="panel">
     <span> Padding </span>
@@ -156,13 +150,16 @@ circle {
   </div>
   <div class="panel">
     <span> Gravity </span>
-    <input id="gravity"  type="range" value="0.02" min="0" max="0.1" step="0.01" onchange="update(this)">
+    <input id="gravity"  type="range" value="2" min="0" max="10" step="1" onchange="update(this)">
   </div>
   <div class="panel">
     <span> DarkMatter </span>
     <input id="darkMatter" type="range" value="331" min="1" max="2000" step="10" onchange="update(this)">
   </div>
- 
+  <div class="panel">
+    <button onclick="share()"> Share parameters</button>
+    <a id="url" href="" style="display:none"></a>
+  </div>
 </div>
 
 
@@ -174,7 +171,7 @@ var w = 800,
 var options = {
   circles : 42,
   radius : 23,
-  gravity : 0.02,
+  gravity : 2,
   padding : 2,
   colors: 3,
   darkMatter:331,
@@ -184,7 +181,6 @@ var root;
 var force;
 
 function update(slider){
-  console.log("value",options[slider.id],slider.value)
   options[slider.id]= slider.value
 
   svg.selectAll("*").remove();
@@ -197,7 +193,7 @@ function dag(o){
       color = d3.scale.category10();
 
   force = d3.layout.force()
-      .gravity(o.gravity)
+      .gravity(o.gravity * 0.01)
       .charge(function(d, i) { return i ? 0 : -o.darkMatter; })
       .nodes(nodes)
       .size([w, h]);
@@ -271,8 +267,61 @@ function collide(node) {
   };
 }
 
-dag(options)
+function parseHash(hash) {
+  // Remove the first character (i.e. the prepended "#").
+  hash = hash.substring(1, hash.length);
+  if (hash=="")
+    return {}
 
+  // This is where we will store our properties and values.
+  var hashObj = {};
+
+  // Split on the delimiter "&" and for each key/val pair...
+  hash.split('&').forEach(function(q) {
+    // Get the property by splitting on all numbers and taking the first entry.
+    var prop = q.split(/\d/)[0];
+    // Get the numerical value by splitting on all non-numbers and taking the last entry.
+    var val_raw = q.split(/[^\d]/);
+    var val = val_raw[val_raw.length - 1]
+
+    // If the property and key are defined, add the key/val pair to our final object.
+    if (typeof prop !== 'undefined' && typeof val !== 'undefined') {
+      hashObj[prop] = +val;
+    }
+  });
+
+  return hashObj;
+}
+
+function copy(){
+  var $temp = document.createElement("input");
+  $("body").append($temp);
+  temp.val(document.getElementById("url").href).select();
+  document.execCommand("copy");
+  $temp.remove();
+}
+
+function share(){
+  var keys = Object.keys(options)
+  optionsStr = "#"
+  for (var i = keys.length - 1; i >= 0; i--) {
+    optionsStr+=keys[i]+options[keys[i]]+"&"
+  }
+  optionsStr = optionsStr.slice(0, -1); 
+  newUrl = window.location.pathname+optionsStr;
+  console.log("newUrl",newUrl)
+  url = document.getElementById("url");
+  url.href = newUrl
+  url.innerHTML = newUrl
+  url.style="display:block"
+
+}
+
+/* #book10&id1483 */
+shareOptions = parseHash(window.location.hash)
+console.log("options",shareOptions, {})
+options = Object.assign(options, shareOptions);
+dag(options)
 
     </script>
   </body>
